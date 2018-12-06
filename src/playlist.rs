@@ -1,13 +1,13 @@
-use soundcloud;
-use rustic::provider;
 use rustic::library::{Playlist, Track};
+use rustic::provider;
+use soundcloud;
 use track::SoundcloudTrack;
 
 #[derive(Debug, Clone)]
 pub struct SoundcloudPlaylist {
     pub id: u64,
     pub title: String,
-    pub tracks: Vec<Track>
+    pub tracks: Vec<Track>,
 }
 
 impl SoundcloudPlaylist {
@@ -25,8 +25,7 @@ impl SoundcloudPlaylist {
                 .map(|track| Track {
                     stream_url: format!("{}?client_id={}", track.stream_url, client_id),
                     ..track
-                })
-                .collect()
+                }).collect(),
         }
     }
 }
@@ -38,7 +37,7 @@ impl From<SoundcloudPlaylist> for Playlist {
             title: playlist.title,
             tracks: playlist.tracks,
             provider: provider::Provider::Soundcloud,
-            uri: format!("soundcloud://playlist/{}", playlist.id)
+            uri: format!("soundcloud://playlist/{}", playlist.id),
         }
     }
 }
@@ -55,7 +54,7 @@ impl From<soundcloud::Playlist> for SoundcloudPlaylist {
                 .filter(|track| track.stream_url.is_some())
                 .map(SoundcloudTrack::from)
                 .map(Track::from)
-                .collect()
+                .collect(),
         }
     }
 }

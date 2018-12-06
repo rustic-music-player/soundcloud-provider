@@ -1,6 +1,6 @@
-use soundcloud;
+use rustic::library::{Artist, Track};
 use rustic::provider;
-use rustic::library::{Track, Artist};
+use soundcloud;
 
 #[derive(Debug, Clone)]
 pub struct SoundcloudTrack(soundcloud::Track);
@@ -16,7 +16,7 @@ impl From<SoundcloudTrack> for Track {
                 id: None,
                 name: track.user.username,
                 image_url: Some(track.user.avatar_url),
-                uri: format!("soundcloud://user/{}", track.user.id)
+                uri: format!("soundcloud://user/{}", track.user.id),
             }),
             artist_id: None,
             album: None,
@@ -25,7 +25,7 @@ impl From<SoundcloudTrack> for Track {
             provider: provider::Provider::Soundcloud,
             uri: format!("soundcloud://track/{}", track.id),
             image_url: track.artwork_url,
-            duration: Some(track.duration)
+            duration: Some(track.duration),
         }
     }
 }

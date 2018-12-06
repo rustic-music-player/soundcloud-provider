@@ -1,5 +1,5 @@
-extern crate rustic_core as rustic;
 extern crate failure;
+extern crate rustic_core as rustic;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
@@ -8,20 +8,20 @@ extern crate log;
 extern crate soundcloud;
 
 mod error;
-mod track;
 mod playlist;
+mod track;
 
-use rustic::provider;
-use rustic::library::{SharedLibrary, Playlist, Track};
-use std::str::FromStr;
 use failure::Error;
+use rustic::library::{Playlist, SharedLibrary, Track};
+use rustic::provider;
+use std::str::FromStr;
 
 use track::SoundcloudTrack;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SoundcloudProvider {
     client_id: String,
-    auth_token: Option<String>
+    auth_token: Option<String>,
 }
 
 impl SoundcloudProvider {
@@ -44,7 +44,9 @@ impl provider::ProviderInstance for SoundcloudProvider {
         "Soundcloud"
     }
 
-    fn uri_scheme(&self) -> &'static str { "soundcloud" }
+    fn uri_scheme(&self) -> &'static str {
+        "soundcloud"
+    }
 
     fn sync(&mut self, library: SharedLibrary) -> Result<provider::SyncResult, Error> {
         let client = self.client();
@@ -60,13 +62,13 @@ impl provider::ProviderInstance for SoundcloudProvider {
             tracks: 0,
             albums: 0,
             artists: 0,
-            playlists: playlists.len()
+            playlists: playlists.len(),
         })
     }
     fn root(&self) -> provider::ProviderFolder {
         provider::ProviderFolder {
             folders: vec!["Likes".to_owned()],
-            items: vec![]
+            items: vec![],
         }
     }
     fn navigate(&self, path: Vec<String>) -> Result<provider::ProviderFolder, Error> {
@@ -80,29 +82,28 @@ impl provider::ProviderInstance for SoundcloudProvider {
                     .filter(|like| like.track.is_some() || like.playlist.is_some())
                     .map(|like| (like.track, like.playlist))
                     .map(|like| match like {
-                        (Some(track), _) => provider::ProviderItem::from(
-                        Track::from(
-                            SoundcloudTrack::from(track))
-                            ),
-                        (_, Some(playlist)) => provider::ProviderItem::from(
-                            Playlist::from(
-                                playlist::SoundcloudPlaylist::from(playlist, &self.client_id))),
-                        _ => panic!("something went horribly wrong")
-                    })
-                    .collect();
+                        (Some(track), _) => {
+                            provider::ProviderItem::from(Track::from(SoundcloudTrack::from(track)))
+                        }
+                        (_, Some(playlist)) => provider::ProviderItem::from(Playlist::from(
+                            playlist::SoundcloudPlaylist::from(playlist, &self.client_id),
+                        )),
+                        _ => panic!("something went horribly wrong"),
+                    }).collect();
                 let folder = provider::ProviderFolder {
                     folders: vec![],
-                    items
+                    items,
                 };
                 Ok(folder)
-            },
-            _ => Err(Error::from(provider::NavigationError::PathNotFound))
+            }
+            _ => Err(Error::from(provider::NavigationError::PathNotFound)),
         }
     }
     fn search(&self, query: String) -> Result<Vec<provider::ProviderItem>, Error> {
         trace!("search {}", query);
         let client = self.client();
-        let results = client.tracks()
+        let results = client
+            .tracks()
             .query(Some(query))
             .get()?
             .unwrap_or_else(|| vec![])
@@ -117,15 +118,17 @@ impl provider::ProviderInstance for SoundcloudProvider {
         let id = &uri["soundcloud://".len()..];
         let id = usize::from_str(id)?;
         let client = self.client();
-        let track = client.tracks()
+        let track = client
+            .tracks()
             .id(id)
             .get()
             .ok()
             .map(|mut track| {
-                track.stream_url = track.stream_url.map(|url| format!("{}?client_id={}", url, self.client_id.clone()));
+                track.stream_url = track
+                    .stream_url
+                    .map(|url| format!("{}?client_id={}", url, self.client_id.clone()));
                 track
-            })
-            .map(SoundcloudTrack::from)
+            }).map(SoundcloudTrack::from)
             .map(Track::from);
         Ok(track)
     }
