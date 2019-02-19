@@ -2,6 +2,9 @@ use rustic::library::{Artist, Track};
 use rustic::provider;
 use soundcloud;
 
+pub const META_SOUNDCLOUD_USER_ID: &'static str = "SOUNDCLOUD_USER_ID";
+pub const META_SOUNDCLOUD_TRACK_ID: &'static str = "SOUNDCLOUD_TRACK_ID";
+
 #[derive(Debug, Clone)]
 pub struct SoundcloudTrack(soundcloud::Track);
 
@@ -17,6 +20,9 @@ impl From<SoundcloudTrack> for Track {
                 name: track.user.username,
                 image_url: Some(track.user.avatar_url),
                 uri: format!("soundcloud://user/{}", track.user.id),
+                meta: hashmap!(
+                    META_SOUNDCLOUD_USER_ID => track.user.id.into()
+                )
             }),
             artist_id: None,
             album: None,
@@ -26,6 +32,9 @@ impl From<SoundcloudTrack> for Track {
             uri: format!("soundcloud://track/{}", track.id),
             image_url: track.artwork_url,
             duration: Some(track.duration),
+            meta: hashmap!{
+                META_SOUNDCLOUD_TRACK_ID => track.id.into()
+            }
         }
     }
 }

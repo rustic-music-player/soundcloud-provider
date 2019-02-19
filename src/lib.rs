@@ -6,6 +6,8 @@ extern crate serde_derive;
 #[macro_use]
 extern crate log;
 extern crate soundcloud;
+#[macro_use]
+extern crate maplit;
 
 mod error;
 mod playlist;
