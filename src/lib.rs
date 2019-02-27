@@ -1,22 +1,26 @@
+#[macro_use]
 extern crate failure;
+#[macro_use]
+extern crate log;
+#[macro_use]
+extern crate maplit;
 extern crate rustic_core as rustic;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
-#[macro_use]
-extern crate log;
 extern crate soundcloud;
+
+use std::str::FromStr;
+
+use failure::Error;
+
+use rustic::library::{Playlist, SharedLibrary, Track};
+use rustic::provider;
+use track::SoundcloudTrack;
 
 mod error;
 mod playlist;
 mod track;
-
-use failure::Error;
-use rustic::library::{Playlist, SharedLibrary, Track};
-use rustic::provider;
-use std::str::FromStr;
-
-use track::SoundcloudTrack;
 
 #[derive(Debug, Clone, Deserialize)]
 pub struct SoundcloudProvider {
@@ -48,13 +52,17 @@ impl provider::ProviderInstance for SoundcloudProvider {
         "soundcloud"
     }
 
+    fn provider(&self) -> provider::Provider {
+        provider::Provider::Soundcloud
+    }
+
     fn sync(&mut self, library: SharedLibrary) -> Result<provider::SyncResult, Error> {
         let client = self.client();
         let mut playlists: Vec<Playlist> = client
             .playlists()?
             .iter()
             .cloned()
-            .map(|playlist| playlist::SoundcloudPlaylist::from(playlist, &self.client_id))
+            .map(playlist::SoundcloudPlaylist::from)
             .map(Playlist::from)
             .collect();
         library.sync_playlists(&mut playlists)?;
@@ -86,7 +94,7 @@ impl provider::ProviderInstance for SoundcloudProvider {
                             provider::ProviderItem::from(Track::from(SoundcloudTrack::from(track)))
                         }
                         (_, Some(playlist)) => provider::ProviderItem::from(Playlist::from(
-                            playlist::SoundcloudPlaylist::from(playlist, &self.client_id),
+                            playlist::SoundcloudPlaylist::from(playlist),
                         )),
                         _ => panic!("something went horribly wrong"),
                     }).collect();
@@ -123,13 +131,21 @@ impl provider::ProviderInstance for SoundcloudProvider {
             .id(id)
             .get()
             .ok()
-            .map(|mut track| {
-                track.stream_url = track
-                    .stream_url
-                    .map(|url| format!("{}?client_id={}", url, self.client_id.clone()));
-                track
-            }).map(SoundcloudTrack::from)
+            .map(SoundcloudTrack::from)
             .map(Track::from);
         Ok(track)
+    }
+
+    fn stream_url(&self, track: &Track) -> Result<String, Error> {
+        if track.provider == provider::Provider::Soundcloud {
+
+            if let rustic::library::MetaValue::String(stream_url) = track.meta.get(track::META_SOUNDCLOUD_STREAM_URL).unwrap() {
+                return Ok(format!("{}?client_id={}", stream_url, self.client_id.clone()));
+            }
+
+            return Err(format_err!("Can't get stream url from track, meta value incompatible"));
+        }
+
+        Err(format_err!("Invalid provider: {:?}", track.provider))
     }
 }
